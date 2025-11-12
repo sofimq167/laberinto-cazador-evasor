@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laberinto: Cazador vs Evasor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .config-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .config-section:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #editMode {
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        select option {
+            background: #667eea;
+            color: white;
+        }
+
+        button {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #10b981;
+            border-color: #059669;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            border-color: #d97706;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            border-color: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #8b5cf6;
+            border-color: #7c3aed;
+        }
+
+        .agent-config {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .agent-indicator {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .agent1-indicator {
+            background: #3b82f6;
+        }
+
+        .agent2-indicator {
+            background: #ef4444;
+        }
+
+        #mazeContainer {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #maze {
+            display: grid;
+            gap: 2px;
+            margin: 0 auto;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 700px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            min-width: 20px;
+            min-height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .cell.empty {
+            background: rgba(148, 163, 184, 0.1);
+        }
+
+        .cell.empty:hover {
+            background: rgba(148, 163, 184, 0.3);
+            cursor: pointer;
+            transform: scale(1.1);
+        }
+
+        body.edit-agent1 .cell.empty:hover {
+            background: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        body.edit-agent2 .cell.empty:hover {
+            background: rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        body.edit-exit .cell.empty:hover {
+            background: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .cell.wall {
+            background: #475569;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .cell.agent1 {
+            background: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+            animation: pulse 1.5s infinite;
+            font-weight: bold;
+            color: white;
+        }
+
+        .cell.agent2 {
+            background: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+            animation: pulse 1.5s infinite;
+            font-weight: bold;
+            color: white;
+        }
+
+        .cell.exit {
+            background: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+            animation: exitPulse 2s infinite;
+        }
+
+        @keyframes exitPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+            }
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 25px rgba(16, 185, 129, 0.9);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .controls button {
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            color: white;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .algo-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .algo-info h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .algo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .algo-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+
+        .algo-card.agent1 {
+            border-left-color: #3b82f6;
+        }
+
+        .algo-card.agent2 {
+            border-left-color: #ef4444;
+        }
+
+        .algo-card h4 {
+            color: white;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .algo-card p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .size-display {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        #connectionStatus {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Laberinto: Cazador vs Evasor</h1>
+            <p>Simulación de Algoritmos Voraces y Programación Dinámica</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Panel de Configuración -->
+            <div class="panel">
+                <div class="panel-title"> Configuración</div>
+                
+                <div id="connectionStatus" class="status-disconnected">
+                    🔴 Desconectado del servidor
+                </div>
+
+                <div class="config-section">
+                    <label>Tamaño del laberinto:</label>
+                    <input type="range" id="gridSize" min="10" max="25" value="15">
+                    <div class="size-display" id="sizeDisplay">15 x 15</div>
+                </div>
+
+                <div class="config-section">
+                    <label>Salida dinámica:</label>
+                    <select id="exitMovement">
+                        <option value="0">Fija (no se mueve)</option>
+                        <option value="2">Cada 2 segundos</option>
+                        <option value="3">Cada 3 segundos</option>
+                        <option value="5" selected>Cada 5 segundos</option>
+                        <option value="10">Cada 10 segundos</option>
+                    </select>
+                </div>
+
+                <div class="config-section">
+                    <label>Modo de edición:</label>
+                    <select id="editMode">
+                        <option value="obstacle">🧱 Colocar obstáculos</option>
+                        <option value="agent1">🔵 Posicionar Agente 1</option>
+                        <option value="agent2">🔴 Posicionar Agente 2</option>
+                        <option value="exit">🚪 Posicionar Salida</option>
+                    </select>
+                    <div id="editModeHelp" style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; color: white; font-size: 0.85em;">
+                        💡 Haz clic en el laberinto para colocar obstáculos
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <div class="agent-config">
+                        <div class="agent-header">
+                            <div class="agent-indicator agent1-indicator">1</div>
+                            <h3 style="color: white; margin: 0;">Agente 1</h3>
+                        </div>
+                        <label>Rol:</label>
+                        <select id="agent1Role">
+                            <option value="hunter">Cazador</option>
+                            <option value="prey">Evasor</option>
+                        </select>
+                        <label style="margin-top: 10px;">Algoritmo:</label>
+                        <select id="agent1Algorithm">
+                            <optgroup label="⚡ Voraces">
+                                <option value="aStar">A* (Heurística)</option>
+                                <option value="dijkstra">Dijkstra</option>
+                            </optgroup>
+                            <optgroup label="🧠 Dinámicos">
+                                <option value="dfsMemo">DFS Memoizado</option>
+                                <option value="bellmanFord">Bellman-Ford</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="agent-config">
+                        <div class="agent-header">
+                            <div class="agent-indicator agent2-indicator">2</div>
+                            <h3 style="color: white; margin: 0;">Agente 2</h3>
+                        </div>
+                        <label>Rol:</label>
+                        <select id="agent2Role">
+                            <option value="prey"> Evasor</option>
+                            <option value="hunter"> Cazador</option>
+                        </select>
+                        <label style="margin-top: 10px;">Algoritmo:</label>
+                        <select id="agent2Algorithm">
+                            <optgroup label="⚡ Voraces">
+                                <option value="aStar">A* (Heurística)</option>
+                                <option value="dijkstra" selected>Dijkstra</option>
+                            </optgroup>
+                            <optgroup label="🧠 Dinámicos">
+                                <option value="dfsMemo">DFS Memoizado</option>
+                                <option value="bellmanFord">Bellman-Ford</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn-secondary" id="randomObstacles">
+                    🎲 Obstáculos Aleatorios
+                </button>
+            </div>
+
+            <!-- Panel del Laberinto -->
+            <div class="panel">
+                <div class="panel-title">🗺️ Laberinto</div>
+                <div id="mazeContainer">
+                    <div id="maze"></div>
+                    <div class="controls">
+                        <button class="btn-primary" id="startBtn">▶️ Iniciar</button>
+                        <button class="btn-warning" id="pauseBtn" disabled>⏸️ Pausar</button>
+                        <button class="btn-danger" id="resetBtn">🔄 Reiniciar</button>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #3b82f6;"></div>
+                            <span>Agente 1</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ef4444;"></div>
+                            <span>Agente 2</span>
+                        </div>
+                        <div class="legend-item" id="exitLegend">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>Salida (Fija)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #475569;"></div>
+                            <span>Obstáculo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Pasos Totales</div>
+                <div class="metric-value" id="totalSteps">0</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Pasos Agente 1</div>
+                <div class="metric-value" id="agent1Steps">0</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Pasos Agente 2</div>
+                <div class="metric-value" id="agent2Steps">0</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Tiempo (s)</div>
+                <div class="metric-value" id="timeElapsed">0.0</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Estado</div>
+                <div class="metric-value" id="status">⏸️</div>
+            </div>
+        </div>
+
+        <!-- Banner de ganador -->
+        <div id="winnerBanner" style="display: none;"></div>
+
+        <!-- Información de algoritmos -->
+        <div class="panel" style="margin-top: 20px;">
+            <h3 style="color: white; margin-bottom: 15px;">Algoritmos en uso</h3>
+            <div class="algo-grid">
+                <div class="algo-card agent1">
+                    <h4 id="algo1Title">Agente 1</h4>
+                    <p id="algo1Desc"></p>
+                </div>
+                <div class="algo-card agent2">
+                    <h4 id="algo2Title">Agente 2</h4>
+                    <p id="algo2Desc"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficas de Análisis -->
+        <div style="margin-top: 30px;">
+            <h2 style="color: white; text-align: center; margin-bottom: 20px;">Análisis de Desempeño</h2>
+            
+            <!-- Gráfica 1: Evolución de Pasos -->
+            <div class="panel" style="margin-bottom: 20px;">
+                <h3 style="color: white; margin-bottom: 15px;">Evolución de Pasos por Agente</h3>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="stepsChart"></canvas>
+                </div>
+                <p style="color: rgba(255,255,255,0.7); font-size: 0.85em; margin-top: 10px; text-align: center;">
+                    Muestra la progresión de pasos de cada agente a lo largo de la simulación
+                </p>
+            </div>
+
+            <!-- Gráfica 2: Distancias Críticas -->
+            <div class="panel">
+                <h3 style="color: white; margin-bottom: 15px;">Distancias Críticas en Tiempo Real</h3>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="distanceChart"></canvas>
+                </div>
+                <p style="color: rgba(255,255,255,0.7); font-size: 0.85em; margin-top: 10px; text-align: center;">
+                    Distancia entre cazador-presa y distancia de la presa a la salida
+                </p>
+            </div>
+
+            <!-- Métricas Adicionales -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                <div class="metric-card">
+                    <div class="metric-label">Distancia Recorrida Agente 1</div>
+                    <div class="metric-value" id="agent1Distance">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Distancia Recorrida Agente 2</div>
+                    <div class="metric-value" id="agent2Distance">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Distancia entre Agentes</div>
+                    <div class="metric-value" id="agentsDistance">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Eficiencia Promedio</div>
+                    <div class="metric-value" id="avgEfficiency">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        
+        // Estado de la aplicación
+        let state = {
+            gridSize: 15,
+            grid: [],
+            agent1Pos: [1, 1],
+            agent2Pos: [13, 1],
+            exitPos: [13, 13],
+            isRunning: false,
+            isPaused: false,
+            startTime: null,
+            animationTimer: null,
+            exitTimer: null,
+            exitMovementInterval: 5,
+            editMode: 'obstacle',
+            metrics: {
+                totalSteps: 0,
+                agent1Steps: 0,
+                agent2Steps: 0,
+                time: 0
+            }
+        };
+
+        // Variables para gráficas
+        let chartsData = {
+            steps: null,
+            distance: null,
+            agent1TotalDistance: 0,
+            agent2TotalDistance: 0
+        };
+
+        // Descripciones de algoritmos
+        const algoDescriptions = {
+            aStar: 'A* - Algoritmo voraz que usa heurística de distancia Manhattan para encontrar el camino óptimo.',
+            dijkstra: 'Dijkstra - Algoritmo voraz que explora sistemáticamente todos los caminos para garantizar el óptimo.',
+            dfsMemo: 'DFS Memoizado - Programación dinámica que explora en profundidad guardando estados visitados.',
+            bellmanFord: 'Bellman-Ford - Programación dinámica que relaja aristas iterativamente para encontrar distancias mínimas.'
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            checkServerConnection();
+            initializeGrid();
+            setupEventListeners();
+            updateAlgorithmInfo();
+            updateExitLegend();
+        });
+
+        // Esperar a que Chart.js se cargue
+        window.addEventListener('load', function() {
+            console.log('🚀 Página cargada, inicializando gráficas...');
+            if (typeof Chart !== 'undefined') {
+                initializeCharts();
+            } else {
+                console.error('❌ Chart.js no se cargó correctamente');
+            }
+        });
+
+        // Inicializar gráficas
+        function initializeCharts() {
+            console.log('📊 Inicializando gráficas...');
+            
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                plugins: {
+                    legend: { 
+                        labels: { 
+                            color: 'white',
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { 
+                            color: 'white',
+                            font: { size: 11 }
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: { 
+                        ticks: { 
+                            color: 'white',
+                            font: { size: 11 },
+                            maxTicksLimit: 10
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            };
+
+            const stepsCtx = document.getElementById('stepsChart');
+            if (stepsCtx) {
+                chartsData.steps = new Chart(stepsCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: '🔵 Agente 1',
+                                data: [],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: '🔴 Agente 2',
+                                data: [],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: commonOptions
+                });
+            }
+
+            const distanceCtx = document.getElementById('distanceChart');
+            if (distanceCtx) {
+                chartsData.distance = new Chart(distanceCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Distancia Cazador-Presa',
+                                data: [],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Distancia Presa-Salida',
+                                data: [],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: commonOptions
+                });
+            }
+        }
+
+        // Actualizar gráficas
+        function updateChartsData(oldAgent1Pos, oldAgent2Pos) {
+            if (!chartsData.steps || !chartsData.distance) return;
+
+            const currentStep = state.metrics.totalSteps;
+
+            const agent1Moved = oldAgent1Pos[0] !== state.agent1Pos[0] || oldAgent1Pos[1] !== state.agent1Pos[1];
+            const agent2Moved = oldAgent2Pos[0] !== state.agent2Pos[0] || oldAgent2Pos[1] !== state.agent2Pos[1];
+            
+            if (agent1Moved) {
+                chartsData.agent1TotalDistance += Math.abs(state.agent1Pos[0] - oldAgent1Pos[0]) + 
+                                                  Math.abs(state.agent1Pos[1] - oldAgent1Pos[1]);
+            }
+            
+            if (agent2Moved) {
+                chartsData.agent2TotalDistance += Math.abs(state.agent2Pos[0] - oldAgent2Pos[0]) + 
+                                                  Math.abs(state.agent2Pos[1] - oldAgent2Pos[1]);
+            }
+
+            const agentsDistance = Math.abs(state.agent1Pos[0] - state.agent2Pos[0]) + 
+                                  Math.abs(state.agent1Pos[1] - state.agent2Pos[1]);
+            
+            const preyPos = document.getElementById('agent1Role').value === 'prey' ? state.agent1Pos : state.agent2Pos;
+            const preyToExit = Math.abs(preyPos[0] - state.exitPos[0]) + 
+                               Math.abs(preyPos[1] - state.exitPos[1]);
+
+            document.getElementById('agent1Distance').textContent = chartsData.agent1TotalDistance;
+            document.getElementById('agent2Distance').textContent = chartsData.agent2TotalDistance;
+            document.getElementById('agentsDistance').textContent = agentsDistance;
+
+            const agent1Efficiency = state.metrics.agent1Steps > 0 
+                ? ((chartsData.agent1TotalDistance / state.metrics.agent1Steps) * 100).toFixed(1)
+                : 0;
+            const agent2Efficiency = state.metrics.agent2Steps > 0 
+                ? ((chartsData.agent2TotalDistance / state.metrics.agent2Steps) * 100).toFixed(1)
+                : 0;
+            const avgEfficiency = ((parseFloat(agent1Efficiency) + parseFloat(agent2Efficiency)) / 2).toFixed(1);
+            document.getElementById('avgEfficiency').textContent = avgEfficiency + '%';
+
+            chartsData.steps.data.labels.push(currentStep);
+            chartsData.steps.data.datasets[0].data.push(state.metrics.agent1Steps);
+            chartsData.steps.data.datasets[1].data.push(state.metrics.agent2Steps);
+            
+            if (chartsData.steps.data.labels.length > 50) {
+                chartsData.steps.data.labels.shift();
+                chartsData.steps.data.datasets[0].data.shift();
+                chartsData.steps.data.datasets[1].data.shift();
+            }
+            chartsData.steps.update('none');
+
+            chartsData.distance.data.labels.push(currentStep);
+            chartsData.distance.data.datasets[0].data.push(agentsDistance);
+            chartsData.distance.data.datasets[1].data.push(preyToExit);
+            
+            if (chartsData.distance.data.labels.length > 50) {
+                chartsData.distance.data.labels.shift();
+                chartsData.distance.data.datasets[0].data.shift();
+                chartsData.distance.data.datasets[1].data.shift();
+            }
+            chartsData.distance.update('none');
+        }
+
+        // Reiniciar gráficas
+        function resetChartsData() {
+            chartsData.agent1TotalDistance = 0;
+            chartsData.agent2TotalDistance = 0;
+
+            if (chartsData.steps) {
+                chartsData.steps.data.labels = [];
+                chartsData.steps.data.datasets[0].data = [];
+                chartsData.steps.data.datasets[1].data = [];
+                chartsData.steps.update();
+            }
+            
+            if (chartsData.distance) {
+                chartsData.distance.data.labels = [];
+                chartsData.distance.data.datasets[0].data = [];
+                chartsData.distance.data.datasets[1].data = [];
+                chartsData.distance.update();
+            }
+
+            document.getElementById('agent1Distance').textContent = '0';
+            document.getElementById('agent2Distance').textContent = '0';
+            document.getElementById('agentsDistance').textContent = '0';
+            document.getElementById('avgEfficiency').textContent = '0%';
+        }
+
+        // Actualizar la leyenda de la salida
+        function updateExitLegend() {
+            const exitLegend = document.getElementById('exitLegend').querySelector('span');
+            if (state.exitMovementInterval === 0) {
+                exitLegend.textContent = 'Salida (Fija)';
+            } else {
+                exitLegend.textContent = `Salida (Cambia cada ${state.exitMovementInterval}s)`;
+            }
+        }
+
+        // Verificar conexión con el servidor
+        async function checkServerConnection() {
+            try {
+                const response = await fetch(`${API_URL}/api/health`);
+                if (response.ok) {
+                    document.getElementById('connectionStatus').textContent = '🟢 Conectado al servidor';
+                    document.getElementById('connectionStatus').className = 'status-connected';
+                } else {
+                    throw new Error('Server not responding');
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').textContent = '🔴 Error: Inicia el servidor Python';
+                document.getElementById('connectionStatus').className = 'status-disconnected';
+                console.error('Error de conexión:', error);
+            }
+        }
+
+        // Inicializar el grid
+        function initializeGrid() {
+            const size = state.gridSize;
+            state.grid = Array(size).fill(null).map(() => Array(size).fill(0));
+            state.agent1Pos = [1, 1];
+            state.agent2Pos = [size - 2, 1];
+            state.exitPos = [size - 2, size - 2];
+            renderMaze();
+        }
+
+        // Renderizar el laberinto
+        function renderMaze() {
+            const maze = document.getElementById('maze');
+            maze.style.gridTemplateColumns = `repeat(${state.gridSize}, 1fr)`;
+            maze.innerHTML = '';
+
+            for (let i = 0; i < state.gridSize; i++) {
+                for (let j = 0; j < state.gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+
+                    if (state.agent1Pos[0] === i && state.agent1Pos[1] === j) {
+                        cell.classList.add('agent1');
+                        cell.textContent = '1';
+                    } else if (state.agent2Pos[0] === i && state.agent2Pos[1] === j) {
+                        cell.classList.add('agent2');
+                        cell.textContent = '2';
+                    } else if (state.exitPos[0] === i && state.exitPos[1] === j) {
+                        cell.classList.add('exit');
+                        cell.textContent = '🚪';
+                    } else if (state.grid[i][j] === 1) {
+                        cell.classList.add('wall');
+                    } else {
+                        cell.classList.add('empty');
+                    }
+
+                    cell.addEventListener('click', () => toggleCell(i, j));
+                    maze.appendChild(cell);
+                }
+            }
+        }
+
+        // Alternar celda
+        function toggleCell(row, col) {
+            if (state.isRunning) return;
+            
+            const mode = state.editMode;
+
+            if (mode === 'obstacle') {
+                if ((row === state.agent1Pos[0] && col === state.agent1Pos[1]) ||
+                    (row === state.agent2Pos[0] && col === state.agent2Pos[1]) ||
+                    (row === state.exitPos[0] && col === state.exitPos[1])) {
+                    return;
+                }
+                state.grid[row][col] = state.grid[row][col] === 0 ? 1 : 0;
+            } else if (mode === 'agent1') {
+                if (state.grid[row][col] === 1) return;
+                state.agent1Pos = [row, col];
+            } else if (mode === 'agent2') {
+                if (state.grid[row][col] === 1) return;
+                state.agent2Pos = [row, col];
+            } else if (mode === 'exit') {
+                if (state.grid[row][col] === 1) return;
+                state.exitPos = [row, col];
+            }
+
+            renderMaze();
+        }
+
+        // Agregar obstáculos aleatorios
+        function addRandomObstacles() {
+            if (state.isRunning) return;
+            const obstacleCount = Math.floor((state.gridSize * state.gridSize) * 0.2);
+
+            for (let i = 0; i < obstacleCount; i++) {
+                const row = Math.floor(Math.random() * state.gridSize);
+                const col = Math.floor(Math.random() * state.gridSize);
+
+                if ((row === state.agent1Pos[0] && col === state.agent1Pos[1]) ||
+                    (row === state.agent2Pos[0] && col === state.agent2Pos[1]) ||
+                    (row === state.exitPos[0] && col === state.exitPos[1])) continue;
+
+                state.grid[row][col] = 1;
+            }
+
+            renderMaze();
+        }
+
+        // Iniciar simulación
+        async function startSimulation() {
+            resetChartsData();
+            
+            state.isRunning = true;
+            state.isPaused = false;
+            state.startTime = Date.now();
+            state.metrics = { totalSteps: 0, agent1Steps: 0, agent2Steps: 0, time: 0 };
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('status').textContent = '▶️';
+            document.getElementById('winnerBanner').style.display = 'none';
+
+            if (state.exitMovementInterval > 0) {
+                startExitMovement();
+            }
+
+            runSimulation();
+        }
+
+        // Iniciar movimiento de salida
+        function startExitMovement() {
+            if (state.exitTimer) {
+                clearInterval(state.exitTimer);
+            }
+
+            const intervalMs = state.exitMovementInterval * 1000;
+            
+            state.exitTimer = setInterval(() => {
+                if (state.isRunning && !state.isPaused) {
+                    moveExitRandomly();
+                }
+            }, intervalMs);
+        }
+
+        // Mover salida aleatoriamente
+        function moveExitRandomly() {
+            const size = state.gridSize;
+            let newPos;
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            do {
+                const row = Math.floor(Math.random() * size);
+                const col = Math.floor(Math.random() * size);
+                newPos = [row, col];
+                attempts++;
+
+                const isWall = state.grid[row][col] === 1;
+                const isAgent1 = row === state.agent1Pos[0] && col === state.agent1Pos[1];
+                const isAgent2 = row === state.agent2Pos[0] && col === state.agent2Pos[1];
+                const isSamePos = row === state.exitPos[0] && col === state.exitPos[1];
+
+                if (!isWall && !isAgent1 && !isAgent2 && !isSamePos) {
+                    break;
+                }
+            } while (attempts < maxAttempts);
+
+            if (attempts < maxAttempts) {
+                state.exitPos = newPos;
+                renderMaze();
+            }
+        }
+
+        // Ejecutar simulación
+        async function runSimulation() {
+            if (!state.isRunning || state.isPaused) return;
+
+            const maxSteps = 1000;
+            if (state.metrics.totalSteps >= maxSteps) {
+                endSimulation('Empate - Límite de pasos alcanzado');
+                return;
+            }
+
+            try {
+                const oldAgent1Pos = [...state.agent1Pos];
+                const oldAgent2Pos = [...state.agent2Pos];
+
+                const response = await fetch(`${API_URL}/api/simulate-step`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        grid: state.grid,
+                        agent1_pos: state.agent1Pos,
+                        agent2_pos: state.agent2Pos,
+                        exit_pos: state.exitPos,
+                        agent1_config: {
+                            role: document.getElementById('agent1Role').value,
+                            algorithm: document.getElementById('agent1Algorithm').value
+                        },
+                        agent2_config: {
+                            role: document.getElementById('agent2Role').value,
+                            algorithm: document.getElementById('agent2Algorithm').value
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                const agent1Moved = result.new_agent1_pos[0] !== state.agent1Pos[0] || result.new_agent1_pos[1] !== state.agent1Pos[1];
+                const agent2Moved = result.new_agent2_pos[0] !== state.agent2Pos[0] || result.new_agent2_pos[1] !== state.agent2Pos[1];
+
+                state.agent1Pos = result.new_agent1_pos;
+                state.agent2Pos = result.new_agent2_pos;
+
+                state.metrics.totalSteps++;
+                if (agent1Moved) state.metrics.agent1Steps++;
+                if (agent2Moved) state.metrics.agent2Steps++;
+                state.metrics.time = ((Date.now() - state.startTime) / 1000).toFixed(2);
+
+                updateMetrics();
+                renderMaze();
+
+                if (chartsData.steps && chartsData.distance) {
+                    updateChartsData(oldAgent1Pos, oldAgent2Pos);
+                }
+
+                if (result.winner) {
+                    endSimulation(result.winner);
+                    return;
+                }
+
+                state.animationTimer = setTimeout(runSimulation, 300);
+
+            } catch (error) {
+                console.error('Error en simulación:', error);
+                alert('Error de conexión con el servidor. Asegúrate de que el backend esté ejecutándose.');
+                endSimulation('Error de conexión');
+            }
+        }
+
+        // Pausar simulación
+        function togglePause() {
+            state.isPaused = !state.isPaused;
+            document.getElementById('pauseBtn').textContent = state.isPaused ? '▶️ Reanudar' : '⏸️ Pausar';
+            document.getElementById('status').textContent = state.isPaused ? '⏸️' : '▶️';
+
+            if (!state.isPaused) {
+                runSimulation();
+            } else {
+                clearTimeout(state.animationTimer);
+            }
+        }
+
+        // Terminar simulación
+        function endSimulation(message) {
+            state.isRunning = false;
+            clearTimeout(state.animationTimer);
+            clearInterval(state.exitTimer);
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('status').textContent = '⏹️';
+
+            const banner = document.getElementById('winnerBanner');
+            
+            const isWin = message.includes('capturó') || message.includes('escapó');
+            const isDraw = message.includes('Empate') || message.includes('Límite');
+            const isError = message.includes('Error');
+            
+            let bannerGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            let emoji = '🏆';
+            let title = '¡Simulación Completada!';
+            
+            if (isDraw) {
+                bannerGradient = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                emoji = '🤝';
+                title = 'Empate';
+            } else if (isError) {
+                bannerGradient = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                emoji = '⚠️';
+                title = 'Error en Simulación';
+            }
+            
+            banner.innerHTML = `
+                <div style="
+                    background: ${bannerGradient};
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                    border: 2px solid rgba(255, 255, 255, 0.2);
+                ">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="font-size: 3.5em; margin-bottom: 10px;">${emoji}</div>
+                        <h2 style="
+                            font-size: 2.2em; 
+                            margin: 0 0 10px 0; 
+                            color: white; 
+                            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                        ">${title}</h2>
+                        <p style="
+                            font-size: 1.3em; 
+                            color: rgba(255, 255, 255, 0.95); 
+                            margin: 0;
+                            font-weight: 500;
+                        ">${message}</p>
+                    </div>
+                    
+                    <div style="
+                        display: grid; 
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+                        gap: 15px; 
+                        background: rgba(255, 255, 255, 0.15);
+                        padding: 20px;
+                        border-radius: 15px;
+                        backdrop-filter: blur(10px);
+                    ">
+                        <div style="text-align: center;">
+                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em; margin-bottom: 5px;">Pasos Totales</div>
+                            <div style="color: white; font-size: 2em; font-weight: bold;">${state.metrics.totalSteps}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em; margin-bottom: 5px;">Agente 1</div>
+                            <div style="color: white; font-size: 2em; font-weight: bold;">${state.metrics.agent1Steps}</div>
+                            <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.8em;">pasos</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em; margin-bottom: 5px;">Agente 2</div>
+                            <div style="color: white; font-size: 2em; font-weight: bold;">${state.metrics.agent2Steps}</div>
+                            <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.8em;">pasos</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em; margin-bottom: 5px;">Tiempo</div>
+                            <div style="color: white; font-size: 2em; font-weight: bold;">${state.metrics.time}</div>
+                            <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.8em;">segundos</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            banner.style.display = 'block';
+        }
+
+        // Reiniciar simulación
+        function resetSimulation() {
+            state.isRunning = false;
+            state.isPaused = false;
+            clearTimeout(state.animationTimer);
+            clearInterval(state.exitTimer);
+            
+            state.metrics = { totalSteps: 0, agent1Steps: 0, agent2Steps: 0, time: 0 };
+            updateMetrics();
+            
+            initializeGrid();
+            resetChartsData();
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('status').textContent = '⏸️';
+            document.getElementById('winnerBanner').style.display = 'none';
+        }
+
+        // Actualizar métricas
+        function updateMetrics() {
+            document.getElementById('totalSteps').textContent = state.metrics.totalSteps;
+            document.getElementById('agent1Steps').textContent = state.metrics.agent1Steps;
+            document.getElementById('agent2Steps').textContent = state.metrics.agent2Steps;
+            document.getElementById('timeElapsed').textContent = state.metrics.time;
+        }
+
+        // Actualizar información de algoritmos
+        function updateAlgorithmInfo() {
+            const agent1Role = document.getElementById('agent1Role').value;
+            const agent1Algo = document.getElementById('agent1Algorithm').value;
+            const agent2Role = document.getElementById('agent2Role').value;
+            const agent2Algo = document.getElementById('agent2Algorithm').value;
+
+            const roleText = {
+                hunter: 'Cazador',
+                prey: 'Evasor'
+            };
+
+            document.getElementById('algo1Title').textContent = `Agente 1 - ${roleText[agent1Role]}`;
+            document.getElementById('algo1Desc').textContent = algoDescriptions[agent1Algo];
+            
+            document.getElementById('algo2Title').textContent = `Agente 2 - ${roleText[agent2Role]}`;
+            document.getElementById('algo2Desc').textContent = algoDescriptions[agent2Algo];
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            document.getElementById('gridSize').addEventListener('input', (e) => {
+                state.gridSize = parseInt(e.target.value);
+                document.getElementById('sizeDisplay').textContent = `${state.gridSize} x ${state.gridSize}`;
+                if (!state.isRunning) {
+                    initializeGrid();
+                }
+            });
+
+            document.getElementById('editMode').addEventListener('change', (e) => {
+                state.editMode = e.target.value;
+                
+                document.body.className = '';
+                if (state.editMode !== 'obstacle') {
+                    document.body.classList.add(`edit-${state.editMode}`);
+                }
+                
+                const helpText = document.getElementById('editModeHelp');
+                const helpMessages = {
+                    obstacle: '💡 Haz clic en el laberinto para colocar/quitar obstáculos',
+                    agent1: '💡 Haz clic en el laberinto para posicionar el Agente 1 (azul)',
+                    agent2: '💡 Haz clic en el laberinto para posicionar el Agente 2 (rojo)',
+                    exit: '💡 Haz clic en el laberinto para posicionar la Salida (verde)'
+                };
+                helpText.textContent = helpMessages[state.editMode];
+            });
+
+            document.getElementById('exitMovement').addEventListener('change', (e) => {
+                state.exitMovementInterval = parseInt(e.target.value);
+                updateExitLegend();
+                
+                if (state.isRunning && state.exitMovementInterval > 0) {
+                    startExitMovement();
+                } else if (state.isRunning && state.exitMovementInterval === 0) {
+                    clearInterval(state.exitTimer);
+                }
+            });
+
+            document.getElementById('startBtn').addEventListener('click', startSimulation);
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+            document.getElementById('randomObstacles').addEventListener('click', addRandomObstacles);
+
+            document.getElementById('agent1Role').addEventListener('change', updateAlgorithmInfo);
+            document.getElementById('agent1Algorithm').addEventListener('change', updateAlgorithmInfo);
+            document.getElementById('agent2Role').addEventListener('change', updateAlgorithmInfo);
+            document.getElementById('agent2Algorithm').addEventListener('change', updateAlgorithmInfo);
+        }
+    </script>
+</body>
+</html>
