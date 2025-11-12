@@ -384,8 +384,20 @@ def health():
     """
     return jsonify({'status': 'ok', 'message': 'Backend funcionando correctamente'})
 
+@app.route('/')
+def home():
+    return jsonify({
+        'message': 'API del simulador de laberinto funcionando correctamente',
+        'endpoints': [
+            '/api/compute-path',
+            '/api/simulate-step',
+            '/api/health'
+        ]
+    })
+
 
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
+
     app.run(host='0.0.0.0', port=port, debug=False)
