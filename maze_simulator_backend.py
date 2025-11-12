@@ -1,11 +1,11 @@
 # maze_simulator_backend.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import heapq
 from collections import deque, defaultdict
 import math
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='', static_folder='.')
 CORS(app)  # Permite peticiones desde el frontend
 
 # ALGORITMOS VORACES
@@ -385,15 +385,9 @@ def health():
     return jsonify({'status': 'ok', 'message': 'Backend funcionando correctamente'})
 
 @app.route('/')
-def home():
-    return jsonify({
-        'message': 'API del simulador de laberinto funcionando correctamente',
-        'endpoints': [
-            '/api/compute-path',
-            '/api/simulate-step',
-            '/api/health'
-        ]
-    })
+def serve_index():
+    # Servir el frontend estático
+    return send_from_directory('.', 'index.html')
 
 
 if __name__ == '__main__':
