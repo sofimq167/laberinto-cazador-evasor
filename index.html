@@ -649,8 +649,9 @@
     </div>
 
     <script>
-        // Usamos mismo origen: las peticiones van a /api/* en el mismo host/puerto
-        const API_URL = '';
+        // Detectar si la app está desplegada en un subdirectorio (p.ej. /sofiam)
+        // y ajustar la base para las peticiones a la API.
+        const API_URL = window.location.pathname.startsWith('/sofiam') ? '/sofiam' : '';
         
         // Estado de la aplicación
         let state = {
